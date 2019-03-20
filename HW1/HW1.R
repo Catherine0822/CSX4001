@@ -26,7 +26,7 @@ ggplot(data=assessmentrisk, aes(x=onshore$assessmentrisk, y=onage, colour = onsh
 
 ##onshore$age and offshore$age
 offyear <- data.frame(as.numeric(str_extract(offshore$birthdate,'\\d{4}')))%>%
-  mutate(offage=2019-offyear[,c(1)])
+  mutate(offage=2019-.[,c(1)])
 AGE<-cbind.data.frame(on=assessmentrisk$onage,off=offyear$offage) %>%
   mutate(onrange=trunc(on/10), offrange=trunc(off/10)) %>%
   gather(key=name, value=values,onrange,offrange)%>%
@@ -62,3 +62,16 @@ ggplot(data=address, aes(x=area, fill = type))+
   theme(axis.text.x=element_text(angle=90))+
   scale_y_continuous(expand = c(0, 0))+
   scale_fill_tableau('Classic Purple-Gray 6')
+
+# gender/ webmember,assessmentrisk
+gen <- onshore[,c("webmember", "assessmentrisk", "gendercode")] %>% drop_na()
+
+ggplot(data=gen, aes(x=gendercode, fill = factor(assessmentrisk)))+ 
+  geom_bar(alpha=0.7, stat="count",position="stack",width = .6)+
+  labs(x = " ", y = "amount of people", size=16)+
+  scale_x_discrete(labels = c("female", "male", "neutral"))+
+  scale_fill_discrete(name = "assessmentrisk") 
+  #scale_fill_tableau('Winter')
+  
+  
+
