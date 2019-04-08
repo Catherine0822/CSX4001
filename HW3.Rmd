@@ -1,0 +1,135 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing 
+your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+## library packages
+```{r}
+library(data.table)
+library(tidyverse)
+```
+
+## import data
+```{r}
+ecoupon <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\ECoupon.csv",
+  header=T,sep=",",fileEncoding ="UTF-8-BOM")
+orders <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\Orders.csv",
+  header=T,sep=",",fileEncoding ="UTF-8-BOM") %>%
+  mutate(OrderGroupCode=str_trim(OrderGroupCode, side = "both"))
+members <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\Member.csv",
+  header=T,sep=",",fileEncoding ="UTF-8-BOM")
+promotion <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\PromotionOrders.csv",
+  header=T,sep=",",fileEncoding ="UTF-8-BOM")
+```
+
+```{r}
+sorders <- head(orders, 10000)
+smembers <- sample_n(members, 1000)
+spromotion <- sample_n(promotion, 1000)
+```
+
+```{r}
+sorders <- sorders %>%
+  mutate(weekday = as.POSIXct(SalesOrderSlaveDateTime)) %>%
+  mutate(weekday = weekdays(weekday)) %>%
+  mutate(hr = strftime(SalesOrderSlaveDateTime,format="%H" )) %>%
+  mutate(yearmonth= strftime(SalesOrderSlaveDateTime,format="%Y-%m-%d"))
+```
+
+## dta 1
+```{r}
+dta1 <- orders[,c(4,5,6,9,12,13,17,18,29,30)] 
+
+## plot G1 (relation between totalpayment ,hr , device)
+g1 <- dta1 %>%
+  group_by(hr,TrackSourceTypeDef) %>%
+  subset(IsMajor != TRUE) %>%
+  summarise(meanpay = mean(SalesOrderSlaveTotalPayment, na.rm = TRUE),
+            sumquantity = sum(Quantity, na.rm = TRUE),
+            sumpay = sum(SalesOrderSlaveTotalPayment, na.rm = TRUE))
+ggplot(g1,aes(x=hr, y=sumpay,group = TrackSourceTypeDef))+ 
+    geom_line(aes(color=TrackSourceTypeDef))+
+    geom_point(aes(color=TrackSourceTypeDef))+
+    scale_color_manual(values=c("steelblue3", "violetred3"))+
+    labs(x = "hour", y = "mean payment (NT)", size=16)+
+    theme(axis.text.x=element_text(angle=60),legend.position="top")
+
+## plot G2 (relation between totalpayment ,hr , device)
+g2 <- dta1 %>%
+  group_by(weekday,TrackSourceTypeDef) %>%
+  subset(IsMajor != TRUE) %>%
+  summarise(meanpay = mean(SalesOrderSlaveTotalPayment, na.rm = TRUE),
+            sumquantity = sum(Quantity, na.rm = TRUE),
+            sumpay = sum(SalesOrderSlaveTotalPayment, na.rm = TRUE))
+ggplot(g2,aes(x=weekday, y=sumpay,group=TrackSourceTypeDef))+ 
+    geom_line(aes(color=TrackSourceTypeDef))+
+    geom_point(aes(color=TrackSourceTypeDef))+
+    scale_x_discrete(limits=c("星期一","星期二","星期三","星期四","星期五","星期六","星期日"))+
+    scale_color_manual(values=c("steelblue3", "violetred3"))+
+    labs(x = "hour", y = "mean payment (NT)", size=16)+
+    theme(axis.text.x=element_text(angle=60),legend.position="top")
+```
+
+
+## dta 2
+```{r}
+dta2 <- orders[,-c(8,19,21,22,23,24,25,26,27,28)] 
+```
+
+```{r}
+## 篩選購物次數>1的客戶
+b <- dta2[,c(2,3)] %>%
+  group_by(OrderGroupCode,MemberId) %>%
+  summarise(n =n()) 
+filter_g3 <- count(b[,c(2)],MemberId ) %>%
+  subset(n!=1)
+
+##套回原本的data
+g3 <- dta2 %>%
+  group_by(MemberId,OrderGroupCode,yearmonth) %>%
+  summarise(totalpay = sum(SalesOrderSlaveTotalPayment),
+            totalquan = sum(Quantity)) %>%
+  filter(MemberId %in% filter_g3$MemberId) %>%
+  mutate(yearmonth = as.POSIXct(yearmonth))
+
+## 計算同一客戶不同次購買的天數差距
+g3 <- g3 %>%
+  group_by(MemberId) %>% 
+  arrange(yearmonth) %>%
+  mutate(diff = difftime(lead(yearmonth),yearmonth,units = "days"))
+
+## 計算平均間隔平均間隔天數
+a <- subset(g4, diff !=0| NA ) %>% mutate(diff= as.numeric(diff))
+meanday <- colMeans(a[,6])
+
+a <- a %>%
+  mutate(membertype = case_when (diff < meanday ~ "F1",
+         meanday<=diff & diff < 49.8 ~"F2",
+         diff >= 49.8 ~"F3"))
+dta3 <- left_join(dta2, a[,c(1,7)] ,by= c("MemberId")) %>%
+  mutate(membertype = replace_na(.$membertype, "F0")) 
+
+head(a)
+##
+```
+
+## draw member type (donut chart)
+```{r}
+ggplot(a, aes(x=2,fill=membertype))+
+  geom_bar(stat = "count",position="fill")+
+  coord_polar(theta = "y")+
+  geom_label(aes(label=paste(fraction*100,"%"),x=3.5,y=(ymin+ymax)/2),inherit.aes = TRUE, show.legend = FALSE)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
