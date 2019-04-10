@@ -28,13 +28,14 @@ promotion <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\PromotionO
 ```
 
 ```{r}
-sorders <- head(orders, 10000)
-smembers <- sample_n(members, 1000)
-spromotion <- sample_n(promotion, 1000)
+#sorders <- head(orders, 10000)
+#smembers <- sample_n(members, 10000)
+#spromotion <- sample_n(promotion, 10000)
 ```
 
+## 新增欄位小時與年月日
 ```{r}
-sorders <- sorders %>%
+orders <- orders %>%
   mutate(weekday = as.POSIXct(SalesOrderSlaveDateTime)) %>%
   mutate(weekday = weekdays(weekday)) %>%
   mutate(hr = strftime(SalesOrderSlaveDateTime,format="%H" )) %>%
@@ -55,10 +56,12 @@ g1 <- dta1 %>%
 ggplot(g1,aes(x=hr, y=sumpay,group = TrackSourceTypeDef))+ 
     geom_line(aes(color=TrackSourceTypeDef))+
     geom_point(aes(color=TrackSourceTypeDef))+
-    scale_color_manual(values=c("steelblue3", "violetred3"))+
+    scale_color_manual(values=c("steelblue3", "violetred3","mediumpurple3"))+
     labs(x = "hour", y = "mean payment (NT)", size=16)+
     theme(axis.text.x=element_text(angle=60),legend.position="top")
+```
 
+```{r}
 ## plot G2 (relation between totalpayment ,hr , device)
 g2 <- dta1 %>%
   group_by(weekday,TrackSourceTypeDef) %>%
@@ -70,7 +73,7 @@ ggplot(g2,aes(x=weekday, y=sumpay,group=TrackSourceTypeDef))+
     geom_line(aes(color=TrackSourceTypeDef))+
     geom_point(aes(color=TrackSourceTypeDef))+
     scale_x_discrete(limits=c("星期一","星期二","星期三","星期四","星期五","星期六","星期日"))+
-    scale_color_manual(values=c("steelblue3", "violetred3"))+
+    scale_color_manual(values=c("steelblue3", "violetred3","mediumpurple3"))+
     labs(x = "hour", y = "mean payment (NT)", size=16)+
     theme(axis.text.x=element_text(angle=60),legend.position="top")
 ```
@@ -86,6 +89,7 @@ dta2 <- orders[,-c(8,19,21,22,23,24,25,26,27,28)]
 b <- dta2[,c(2,3)] %>%
   group_by(OrderGroupCode,MemberId) %>%
   summarise(n =n()) 
+
 filter_g3 <- count(b[,c(2)],MemberId ) %>%
   subset(n!=1)
 
@@ -104,28 +108,99 @@ g3 <- g3 %>%
   mutate(diff = difftime(lead(yearmonth),yearmonth,units = "days"))
 
 ## 計算平均間隔平均間隔天數
-a <- subset(g4, diff !=0| NA ) %>% mutate(diff= as.numeric(diff))
+a <- subset(g3, diff !=0| NA ) %>% mutate(diff= as.numeric(diff))
 meanday <- colMeans(a[,6])
 
 a <- a %>%
   mutate(membertype = case_when (diff < meanday ~ "F1",
-         meanday<=diff & diff < 49.8 ~"F2",
-         diff >= 49.8 ~"F3"))
-dta3 <- left_join(dta2, a[,c(1,7)] ,by= c("MemberId")) %>%
-  mutate(membertype = replace_na(.$membertype, "F0")) 
+         meanday<=diff & diff < (meanday*2) ~"F2",
+         diff >= (meanday*2) ~"F3"))
 
 head(a)
 ##
 ```
 
-## draw member type (donut chart)
+## draw member type (donut chart) F0為止消費過一次/ F1為消費週期<1/ F2為<1消費週期<2/ F3為消費週期>2
 ```{r}
+
 ggplot(a, aes(x=2,fill=membertype))+
+  #blank_theme +
   geom_bar(stat = "count",position="fill")+
-  coord_polar(theta = "y")+
-  geom_label(aes(label=paste(fraction*100,"%"),x=3.5,y=(ymin+ymax)/2),inherit.aes = TRUE, show.legend = FALSE)
+  coord_polar(theta = "y")
 ```
 
+##消費週期和購買量與金額、折扣金額的關係
+```{r}
+dta3 <- left_join(dta2, a[,c(1,7)] ,by= c("MemberId")) %>%
+  mutate(membertype = replace_na(.$membertype, "F0")) %>%
+  group_by(MemberId,membertype,City) %>%
+  summarise(totalpay = sum(SalesOrderSlaveTotalPayment),
+            totalquan = sum(Quantity),
+            totaldiscount = sum(PromotionDiscount + ECouponDiscount))
+
+d <- dta3 %>%
+  group_by(membertype) %>%
+  summarise(pay = round(mean(totalpay)),
+            quan = round(mean(totalquan)),
+            discount = abs(round(mean(totaldiscount)))) %>%
+  mutate(membertype = case_when(membertype == "F0" ~ 0,
+                                membertype == "F1" ~ 1,
+                                membertype == "F2" ~ 2,
+                                membertype == "F3" ~ 3))
+
+ggplot(d,aes(x=membertype))+ 
+    geom_line(aes(y = quan, colour="Quantity"),size = 1.5)+
+    geom_line(aes(y = pay/200, colour="Payment"),size = 1.5)+
+    geom_bar(aes(y = discount/200, fill= "discount" ), 
+             stat = "identity",width = 0.3)+
+    scale_y_continuous(sec.axis = sec_axis(~.*200, name = "mean payment (NT)"))+
+    geom_point(aes(y= pay/200, colour="Payment"), size =3)+
+    geom_point(aes(y= quan, colour="Quantity"), size = 3)+
+    scale_color_manual(values=c("steelblue3", "mediumpurple3"))+
+    scale_fill_manual(values=c("palegreen3"))+
+    labs(x = "member type", y = "mean quantity", size=16)+
+    #scale_x_discrete(labels=c("0"="消費1次", "1"="消費週期小於1",
+                             # "2"="消費週期大於1小於2", "3"="消費週期大於2"))+
+    theme(axis.text.x=element_text(angle=60), legend.position="top")
+
+```
+
+## 以消費總金額分類客戶(T0= <-1SD, T1=-1SD~1SD, T2= >1SD )
+```{r}
+m <- mean(dta3$totalpay)
+s <- sd(dta3$totalpay)
+
+dta4 <- dta3 %>%
+  mutate(membertype2 = case_when(totalpay <= m-s ~ "T0",
+                                 totalpay > m-s & totalpay <= m+s ~ "T1",
+                                 totalpay > m+s ~ "T2"))
+  #subset(membertype != "F0")
+
+# F0 <- filter(dta4, membertype == "F0")
+# F1 <- filter(dta4, membertype == "F1") %>%
+#   left_join(., filter_g3, by = "MemberId")
+# F2 <- filter(dta4, membertype == "F2") %>%
+#   left_join(., filter_g3, by = "MemberId")
+# F3 <- filter(dta4, membertype == "F3") %>%
+#   left_join(., filter_g3, by = "MemberId")
+
+
+
+
+ggplot(dta4, aes(x= membertype, fill= membertype2))+
+   geom_bar(alpha=0.7, position="fill",width = .5)+
+   labs(x = "member type", y = "people", size=16)
+  
+
+dta3 <- subset(dta3, totalpay < 500000)
+
+```
+
+```{r}
+ggplot(dta3, aes(x= MemberId, y= totalpay))+
+  geom_point() +
+  expand_limits( y=c(0, 50000))
+```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
