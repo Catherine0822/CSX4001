@@ -1,6 +1,6 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output: html_document
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
@@ -33,7 +33,7 @@ promotion <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\PromotionO
 #spromotion <- sample_n(promotion, 10000)
 ```
 
-## 新增欄位小時與年月日
+## 增加時間欄位
 ```{r}
 orders <- orders %>%
   mutate(weekday = as.POSIXct(SalesOrderSlaveDateTime)) %>%
@@ -42,11 +42,10 @@ orders <- orders %>%
   mutate(yearmonth= strftime(SalesOrderSlaveDateTime,format="%Y-%m-%d"))
 ```
 
-## dta 1
+## plot G1 (relation between totalpayment ,hr , device)
 ```{r}
 dta1 <- orders[,c(4,5,6,9,12,13,17,18,29,30)] 
 
-## plot G1 (relation between totalpayment ,hr , device)
 g1 <- dta1 %>%
   group_by(hr,TrackSourceTypeDef) %>%
   subset(IsMajor != TRUE) %>%
@@ -61,8 +60,8 @@ ggplot(g1,aes(x=hr, y=sumpay,group = TrackSourceTypeDef))+
     theme(axis.text.x=element_text(angle=60),legend.position="top")
 ```
 
-```{r}
 ## plot G2 (relation between totalpayment ,hr , device)
+```{r}
 g2 <- dta1 %>%
   group_by(weekday,TrackSourceTypeDef) %>%
   subset(IsMajor != TRUE) %>%
@@ -85,7 +84,7 @@ dta2 <- orders[,-c(8,19,21,22,23,24,25,26,27,28)]
 ```
 
 ```{r}
-## 篩選購物次數>1的客戶
+## 篩選購物次數>1的顧客
 b <- dta2[,c(2,3)] %>%
   group_by(OrderGroupCode,MemberId) %>%
   summarise(n =n()) 
@@ -93,7 +92,7 @@ b <- dta2[,c(2,3)] %>%
 filter_g3 <- count(b[,c(2)],MemberId ) %>%
   subset(n!=1)
 
-##套回原本的data
+##套回原本的DATA
 g3 <- dta2 %>%
   group_by(MemberId,OrderGroupCode,yearmonth) %>%
   summarise(totalpay = sum(SalesOrderSlaveTotalPayment),
@@ -101,13 +100,13 @@ g3 <- dta2 %>%
   filter(MemberId %in% filter_g3$MemberId) %>%
   mutate(yearmonth = as.POSIXct(yearmonth))
 
-## 計算同一客戶不同次購買的天數差距
+## 計算同一客戶不同次購買之天數差異
 g3 <- g3 %>%
   group_by(MemberId) %>% 
   arrange(yearmonth) %>%
   mutate(diff = difftime(lead(yearmonth),yearmonth,units = "days"))
 
-## 計算平均間隔平均間隔天數
+## 計算平均天數差異
 a <- subset(g3, diff !=0| NA ) %>% mutate(diff= as.numeric(diff))
 meanday <- colMeans(a[,6])
 
@@ -120,7 +119,9 @@ head(a)
 ##
 ```
 
-## draw member type (donut chart) F0為止消費過一次/ F1為消費週期<1/ F2為<1消費週期<2/ F3為消費週期>2
+## draw member type (donut chart) 
+# F0: 消費一次 F1: 消費週期<1 F2: 消費週期大於1小於2 F3: 消費週期>2
+
 ```{r}
 
 ggplot(a, aes(x=2,fill=membertype))+
@@ -129,11 +130,11 @@ ggplot(a, aes(x=2,fill=membertype))+
   coord_polar(theta = "y")
 ```
 
-##消費週期和購買量與金額、折扣金額的關係
+## relations between different member type and their total payment, total quantity and total discount
 ```{r}
 dta3 <- left_join(dta2, a[,c(1,7)] ,by= c("MemberId")) %>%
   mutate(membertype = replace_na(.$membertype, "F0")) %>%
-  group_by(MemberId,membertype,City) %>%
+  group_by(MemberId,membertype,City,yearmonth) %>%
   summarise(totalpay = sum(SalesOrderSlaveTotalPayment),
             totalquan = sum(Quantity),
             totaldiscount = sum(PromotionDiscount + ECouponDiscount))
@@ -159,44 +160,14 @@ ggplot(d,aes(x=membertype))+
     scale_color_manual(values=c("steelblue3", "mediumpurple3"))+
     scale_fill_manual(values=c("palegreen3"))+
     labs(x = "member type", y = "mean quantity", size=16)+
-    #scale_x_discrete(labels=c("0"="消費1次", "1"="消費週期小於1",
-                             # "2"="消費週期大於1小於2", "3"="消費週期大於2"))+
     theme(axis.text.x=element_text(angle=60), legend.position="top")
 
 ```
 
-## 以消費總金額分類客戶(T0= <-1SD, T1=-1SD~1SD, T2= >1SD )
+
+## scatter plot of member and thier total payment
 ```{r}
-m <- mean(dta3$totalpay)
-s <- sd(dta3$totalpay)
-
-dta4 <- dta3 %>%
-  mutate(membertype2 = case_when(totalpay <= m-s ~ "T0",
-                                 totalpay > m-s & totalpay <= m+s ~ "T1",
-                                 totalpay > m+s ~ "T2"))
-  #subset(membertype != "F0")
-
-# F0 <- filter(dta4, membertype == "F0")
-# F1 <- filter(dta4, membertype == "F1") %>%
-#   left_join(., filter_g3, by = "MemberId")
-# F2 <- filter(dta4, membertype == "F2") %>%
-#   left_join(., filter_g3, by = "MemberId")
-# F3 <- filter(dta4, membertype == "F3") %>%
-#   left_join(., filter_g3, by = "MemberId")
-
-
-
-
-ggplot(dta4, aes(x= membertype, fill= membertype2))+
-   geom_bar(alpha=0.7, position="fill",width = .5)+
-   labs(x = "member type", y = "people", size=16)
-  
-
 dta3 <- subset(dta3, totalpay < 500000)
-
-```
-
-```{r}
 ggplot(dta3, aes(x= MemberId, y= totalpay))+
   geom_point() +
   expand_limits( y=c(0, 50000))
