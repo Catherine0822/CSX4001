@@ -33,7 +33,7 @@ promotion <- read.csv("C:\\Users\\user\\Desktop\\data_science\\91APP\\PromotionO
 #spromotion <- sample_n(promotion, 10000)
 ```
 
-## å¢åŠ æ™‚é–“æ¬„ä½
+## å¢å? æ?‚é?“æ?„ä??
 ```{r}
 orders <- orders %>%
   mutate(weekday = as.POSIXct(SalesOrderSlaveDateTime)) %>%
@@ -71,7 +71,7 @@ g2 <- dta1 %>%
 ggplot(g2,aes(x=weekday, y=sumpay,group=TrackSourceTypeDef))+ 
     geom_line(aes(color=TrackSourceTypeDef))+
     geom_point(aes(color=TrackSourceTypeDef))+
-    scale_x_discrete(limits=c("æ˜ŸæœŸä¸€","æ˜ŸæœŸäºŒ","æ˜ŸæœŸä¸‰","æ˜ŸæœŸå››","æ˜ŸæœŸäº”","æ˜ŸæœŸå…­","æ˜ŸæœŸæ—¥"))+
+    scale_x_discrete(limits=c("??Ÿæ?Ÿä?€","??Ÿæ?Ÿä??","??Ÿæ?Ÿä??","??Ÿæ?Ÿå??","??Ÿæ?Ÿä??","??Ÿæ?Ÿå…­","??Ÿæ?Ÿæ—¥"))+
     scale_color_manual(values=c("steelblue3", "violetred3","mediumpurple3"))+
     labs(x = "hour", y = "mean payment (NT)", size=16)+
     theme(axis.text.x=element_text(angle=60),legend.position="top")
@@ -84,7 +84,7 @@ dta2 <- orders[,-c(8,19,21,22,23,24,25,26,27,28)]
 ```
 
 ```{r}
-## ç¯©é¸è³¼ç‰©æ¬¡æ•¸>1çš„é¡§å®¢
+## ç¯©é¸è³¼ç‰©æ¬¡æ•¸>1??„é¡§å®?
 b <- dta2[,c(2,3)] %>%
   group_by(OrderGroupCode,MemberId) %>%
   summarise(n =n()) 
@@ -92,7 +92,7 @@ b <- dta2[,c(2,3)] %>%
 filter_g3 <- count(b[,c(2)],MemberId ) %>%
   subset(n!=1)
 
-##å¥—å›åŸæœ¬çš„DATA
+##å¥—å?å?Ÿæœ¬??„DATA
 g3 <- dta2 %>%
   group_by(MemberId,OrderGroupCode,yearmonth) %>%
   summarise(totalpay = sum(SalesOrderSlaveTotalPayment),
@@ -100,13 +100,13 @@ g3 <- dta2 %>%
   filter(MemberId %in% filter_g3$MemberId) %>%
   mutate(yearmonth = as.POSIXct(yearmonth))
 
-## è¨ˆç®—åŒä¸€å®¢æˆ¶ä¸åŒæ¬¡è³¼è²·ä¹‹å¤©æ•¸å·®ç•°
+## è¨ˆç?—å?Œä?€å®¢æˆ¶ä¸å?Œæ¬¡è³¼è²·ä¹‹å¤©?•¸å·®ç•°
 g3 <- g3 %>%
   group_by(MemberId) %>% 
   arrange(yearmonth) %>%
   mutate(diff = difftime(lead(yearmonth),yearmonth,units = "days"))
 
-## è¨ˆç®—å¹³å‡å¤©æ•¸å·®ç•°
+## è¨ˆç?—å¹³??‡å¤©?•¸å·®ç•°
 a <- subset(g3, diff !=0| NA ) %>% mutate(diff= as.numeric(diff))
 meanday <- colMeans(a[,6])
 
@@ -120,7 +120,7 @@ head(a)
 ```
 
 ## draw member type (donut chart) 
-# F0: æ¶ˆè²»ä¸€æ¬¡ F1: æ¶ˆè²»é€±æœŸ<1 F2: æ¶ˆè²»é€±æœŸå¤§æ–¼1å°æ–¼2 F3: æ¶ˆè²»é€±æœŸ>2
+# F0: æ¶ˆè²»ä¸€æ¬? F1: æ¶ˆè²»?€±æ??<1 F2: æ¶ˆè²»?€±æ?Ÿå¤§?–¼1å°æ–¼2 F3: æ¶ˆè²»?€±æ??>2
 
 ```{r}
 
@@ -167,7 +167,7 @@ ggplot(d,aes(x=membertype))+
 
 ## scatter plot of member and thier total payment
 ```{r}
-dta3 <- subset(dta3, totalpay < 500000)
+dta3 <- subset(dta3, totalpay < 100000) ##delete totalpay > 100000 
 ggplot(dta3, aes(x= MemberId, y= totalpay))+
   geom_point() +
   expand_limits( y=c(0, 50000))
