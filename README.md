@@ -13,6 +13,7 @@
 
 ## PART3:
 ## PART4: 分析不同的顧客分群與使用promotion之間的關係，我們預期看到在不同族群的˙顧客身上用不同的promotion會有不同效果
+### html link: https://catherine0822.github.io/CSX4001/FinalReport_part4.html
 #### 1. 透過統計方法看不同組之間有無使用promotion的meanpay有沒有差別–>即使有效果也無法說明給a組promotion比較有效因為我們不知道a組共拿了多少promotion
 #### 2. 整理出每個客戶每一筆消費特徵值
 #### 3. 將part2 整理出來的特質們透過降維，挑出同一組特徵相同的人，獨變向為使用不同種類的promotion(背後動機為AB test，控制掉其他變相後比較唯一有無promotion的差異)–>看之後的second/third/fourth/fifth_info兩人的升降有無差異–>進一步下結論哪一分群的客戶適合使用什麼種類的promotion
