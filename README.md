@@ -38,7 +38,7 @@
 
 
 ## HW3
-### html link: https://catherine0822.github.io/CSX4001/HW3.html
+### html link: https://catherine0822.github.io/CSX4001/HW3/HW3.html
 ### 進行初步EDA (explorational data analysis)，從圖表說故事
 ### 圖1 : hr 與購買總額: 晚上11:00-1:00為購買總額巔峰時段
 ### 圖2 : 星期與購買總額 : 星期六是購買總額最低
