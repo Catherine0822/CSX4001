@@ -1,9 +1,9 @@
-# 91 APP 資料分析
+# 91 APP DATA ANALYSIS
 
 
 # FINAL REPORT
-## PART1: 91APP 資料清理、視覺化
-### 檔名: FinalReport_part1.ipynb
+## PART1: 91APP data cleaning, data visualization
+### file name: FinalReport_part1.ipynb
 #### 1.ShoppingCarts.csv共變異數矩陣
 #### 2.不同付款方式與不同使用平台，與總價格/數量的關係
 #### 3.不同付款方式與不同使用裝置，與總價格/數量的關係
